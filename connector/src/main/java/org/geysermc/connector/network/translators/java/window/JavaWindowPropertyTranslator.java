@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019-2020 GeyserMC. http://geysermc.org
+ * Copyright (c) 2019 GeyserMC. http://geysermc.org
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,32 +25,24 @@
 
 package org.geysermc.connector.network.translators.java.window;
 
-import com.github.steveice10.mc.protocol.packet.ingame.server.window.ServerWindowItemsPacket;
+import com.github.steveice10.mc.protocol.packet.ingame.server.window.ServerWindowPropertyPacket;
 import org.geysermc.connector.inventory.Inventory;
 import org.geysermc.connector.network.session.GeyserSession;
 import org.geysermc.connector.network.translators.PacketTranslator;
 import org.geysermc.connector.network.translators.TranslatorsInit;
 import org.geysermc.connector.network.translators.inventory.InventoryTranslator;
 
-import java.util.Arrays;
-
-public class JavaWindowItemsTranslator extends PacketTranslator<ServerWindowItemsPacket> {
+public class JavaWindowPropertyTranslator extends PacketTranslator<ServerWindowPropertyPacket> {
 
     @Override
-    public void translate(ServerWindowItemsPacket packet, GeyserSession session) {
+    public void translate(ServerWindowPropertyPacket packet, GeyserSession session) {
         Inventory inventory = session.getInventoryCache().getInventories().get(packet.getWindowId());
         if (inventory == null || (packet.getWindowId() != 0 && inventory.getWindowType() == null))
             return;
 
-        if (packet.getItems().length < inventory.getSize()) {
-            inventory.setItems(Arrays.copyOf(packet.getItems(), inventory.getSize()));
-        } else {
-            inventory.setItems(packet.getItems());
-        }
-
         InventoryTranslator translator = TranslatorsInit.getInventoryTranslators().get(inventory.getWindowType());
         if (translator != null) {
-            translator.updateInventory(session, inventory);
+            translator.updateProperty(session, inventory, packet.getRawProperty(), packet.getValue());
         }
     }
 }

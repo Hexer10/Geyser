@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019-2020 GeyserMC. http://geysermc.org
+ * Copyright (c) 2019 GeyserMC. http://geysermc.org
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,34 +23,32 @@
  * @link https://github.com/GeyserMC/Geyser
  */
 
-package org.geysermc.connector.network.translators.java.window;
+package org.geysermc.connector.network.translators.bedrock;
 
-import com.github.steveice10.mc.protocol.packet.ingame.server.window.ServerWindowItemsPacket;
+import com.github.steveice10.mc.protocol.packet.ingame.client.window.ClientCloseWindowPacket;
+import com.nukkitx.protocol.bedrock.packet.ContainerClosePacket;
 import org.geysermc.connector.inventory.Inventory;
 import org.geysermc.connector.network.session.GeyserSession;
 import org.geysermc.connector.network.translators.PacketTranslator;
 import org.geysermc.connector.network.translators.TranslatorsInit;
 import org.geysermc.connector.network.translators.inventory.InventoryTranslator;
+import org.geysermc.connector.utils.InventoryUtils;
 
-import java.util.Arrays;
-
-public class JavaWindowItemsTranslator extends PacketTranslator<ServerWindowItemsPacket> {
+public class BedrockContainerCloseTranslator extends PacketTranslator<ContainerClosePacket> {
 
     @Override
-    public void translate(ServerWindowItemsPacket packet, GeyserSession session) {
-        Inventory inventory = session.getInventoryCache().getInventories().get(packet.getWindowId());
-        if (inventory == null || (packet.getWindowId() != 0 && inventory.getWindowType() == null))
-            return;
-
-        if (packet.getItems().length < inventory.getSize()) {
-            inventory.setItems(Arrays.copyOf(packet.getItems(), inventory.getSize()));
-        } else {
-            inventory.setItems(packet.getItems());
+    public void translate(ContainerClosePacket packet, GeyserSession session) {
+        byte windowId = packet.getWindowId();
+        if (windowId == -1) { //player inventory or crafting table
+            Inventory openInventory = session.getInventoryCache().getOpenInventory();
+            if (openInventory != null) {
+                windowId = (byte) openInventory.getId();
+            } else {
+                windowId = 0;
+            }
         }
-
-        InventoryTranslator translator = TranslatorsInit.getInventoryTranslators().get(inventory.getWindowType());
-        if (translator != null) {
-            translator.updateInventory(session, inventory);
-        }
+        ClientCloseWindowPacket closeWindowPacket = new ClientCloseWindowPacket(windowId);
+        session.getDownstream().getSession().send(closeWindowPacket);
+        InventoryUtils.closeInventory(session, windowId);
     }
 }

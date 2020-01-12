@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019-2020 GeyserMC. http://geysermc.org
+ * Copyright (c) 2019 GeyserMC. http://geysermc.org
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,48 +23,23 @@
  * @link https://github.com/GeyserMC/Geyser
  */
 
-package org.geysermc.connector.world.chunk;
+package org.geysermc.connector.network.translators.java.window;
 
-import com.github.steveice10.mc.protocol.data.game.entity.metadata.Position;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.Setter;
+import com.github.steveice10.mc.protocol.packet.ingame.client.window.ClientConfirmTransactionPacket;
+import com.github.steveice10.mc.protocol.packet.ingame.server.window.ServerConfirmTransactionPacket;
+import org.geysermc.connector.inventory.Inventory;
+import org.geysermc.connector.network.session.GeyserSession;
+import org.geysermc.connector.network.translators.PacketTranslator;
+import org.geysermc.connector.network.translators.inventory.InventoryTranslator;
+import org.geysermc.connector.utils.InventoryUtils;
 
-import java.util.Objects;
-
-@Getter
-@Setter
-@AllArgsConstructor
-public class ChunkPosition {
-
-    private int x;
-    private int z;
-
-    public Position getBlock(int x, int y, int z) {
-        return new Position((this.x << 4) + x, y, (this.z << 4) + z);
-    }
-
-    public Position getChunkBlock(int x, int y, int z) {
-        int chunkX = x & 15;
-        int chunkY = y & 15;
-        int chunkZ = z & 15;
-        return new Position(chunkX, chunkY, chunkZ);
-    }
+public class JavaConfirmTransactionTranslator extends PacketTranslator<ServerConfirmTransactionPacket> {
 
     @Override
-    public boolean equals(Object obj) {
-        if (obj == this)
-            return true;
-        if (obj == null)
-            return false;
-        if (!(obj instanceof ChunkPosition))
-            return false;
-        ChunkPosition other = (ChunkPosition)obj;
-        return x == other.x && z == other.z;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(x, z);
+    public void translate(ServerConfirmTransactionPacket packet, GeyserSession session) {
+        if (!packet.isAccepted()) {
+            ClientConfirmTransactionPacket confirmPacket = new ClientConfirmTransactionPacket(packet.getWindowId(), packet.getActionId(), true);
+            session.getDownstream().getSession().send(confirmPacket);
+        }
     }
 }
